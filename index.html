@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Grid Component</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/8.2.3/firebase.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/8.2.3/firebase-firestore.min.js"></script>
+    <script src="https://unpkg.com/vue"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.2.4/gsap.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <link rel="stylesheet" type="text/css" href="css/style.css" />
+
+    <img id="logo" src="img/logo3_2 1.png" alt="">
+
+    <!-- component template -->
+    <script type="text/x-template" id="grid-template">
+      <table>
+        <thead>
+          <tr>
+            <th v-for="key in columns"
+              @click="sortBy(key)"
+              :class="{ active: sortKey == key }">
+              {{ key | capitalize }}
+              <span class="arrow" :class="sortOrders[key] > 0 ? 'asc' : 'dsc'">
+              </span>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="entry in filteredHeroes">
+            <td v-for="key in columns" >
+                  <transition name="slide-fade" mode="out-in">
+                    <div :key="entry[key]">
+                      <span>
+                        {{entry[key]}}
+                      </span>
+                    </div>
+                  </transition>
+                </td>
+            </tr>
+        </tbody>
+      </table>
+    </script>
+  </head>
+  <body>
+    <!-- demo root element -->
+    <div id="demo">
+      
+      <form id="search">
+        <input name="query" v-model="searchQuery" placeholder="Search" />
+      </form>
+      <h2 v-if="gridData.length">
+        <transition name="slide-fade" mode="out-in">
+          <span :key="gridData.length">
+            {{ gridData.length }} 
+          </span>
+        </transition>
+        joueurs
+      </h2>
+      <demo-grid
+        :heroes="gridData"
+        :columns="gridColumns"
+        :filter-key="searchQuery"
+      >
+      </demo-grid>
+    </div>
+
+    <script>
+      // register the grid component
+      Vue.component("demo-grid", {
+        template: "#grid-template",
+        props: {
+          heroes: Array,
+          columns: Array,
+          filterKey: String
+        },
+        data: function() {
+          var sortOrders = {};
+          this.columns.forEach(function(key) {
+            sortOrders[key] = 1;
+          });
+          return {
+            sortKey: "",
+            sortOrders: sortOrders
+          };
+        },
+        computed: {
+          filteredHeroes: function() {
+            var sortKey = this.sortKey;
+            var filterKey = this.filterKey && this.filterKey.toLowerCase();
+            var order = this.sortOrders[sortKey] || 1;
+            var heroes = this.heroes;
+            if (filterKey) {
+              heroes = heroes.filter(function(row) {
+                return Object.keys(row).some(function(key) {
+                  return (
+                    String(row[key])
+                      .toLowerCase()
+                      .indexOf(filterKey) > -1
+                  );
+                });
+              });
+            }
+            if (sortKey) {
+              heroes = heroes.slice().sort(function(a, b) {
+                a = a[sortKey];
+                b = b[sortKey];
+                return (a === b ? 0 : a > b ? 1 : -1) * order;
+              });
+            }
+            return heroes;
+          }
+        },
+        filters: {
+          capitalize: function(str) {
+            return str.charAt(0).toUpperCase() + str.slice(1);
+          }
+        },
+        methods: {
+          sortBy: function(key) {
+            this.sortKey = key;
+            this.sortOrders[key] = this.sortOrders[key] * -1;
+          }
+        },
+      });
+
+      // bootstrap the demo
+      var demo = new Vue({
+        el: "#demo",
+        data: {
+          searchQuery: "",
+          gridColumns: ["pseudo","numberOfDeaths", "numberOfKills","validatedLevels","score"],
+          gridData: []
+        },
+        mounted: function () {
+          this.$nextTick(function () {
+
+            /**********************/
+            /*** A DECOMMENTER ****/
+            /**********************/
+
+            // var firebaseConfig = {
+            //   apiKey: "AIzaSyC2lJL4ixVJZ5W0o40VrbkqkdUcqGJ1ZKg",
+            //   authDomain: "tchat-esd.firebaseapp.com",
+            //   databaseURL: "https://tchat-esd.firebaseio.com",
+            //   projectId: "tchat-esd",
+            //   storageBucket: "tchat-esd.appspot.com",
+            //   messagingSenderId: "480169967880",
+            //   appId: "1:480169967880:web:23b546f97de24a1caa6cbd"
+            // };
+            // Initialize Firebase
+
+
+            var config = {
+              apiKey: "AIzaSyAq2N1FjK72ehRDMWR3xj3CuEXT6iSJdE0",
+              authDomain: "arcade-game-cha.firebaseapp.com",
+              projectId: "arcade-game-cha",
+              storageBucket: "arcade-game-cha.appspot.com",
+              messagingSenderId: "223548580588",
+              appId: "1:223548580588:web:2a32c3855ffedbfca47bc9"
+            };
+
+            firebase.initializeApp(config);
+            let db = firebase.firestore();
+
+            db.collection("arcade-game-scoring").onSnapshot((snapshot) => {
+              this.gridData = []
+              snapshot.forEach(async (doc) => {
+                const scoring = doc.data()
+                let tab = [...this.gridData, scoring]
+
+                let sortTab = tab.sort((a,b) =>{
+                  return new Date(b.updateDate) - new Date(a.updateDate);
+                })
+
+                this.gridData = sortTab
+              })
+            })
+          })
+        },
+      });
+    </script>
+
+  </body>
+</html>
